@@ -173,9 +173,9 @@ class Generator {
   parseStyleTag() {
     // special style tag handling, can't nest, treat whole content as CSS
     let initial = this.i;
-    const isEnd = () => 
+    const isEnd = () =>
       this.current() === c.ANGLE_OPEN &&
-      this.data[this.i + 1] === c.SLASH && 
+      this.data[this.i + 1] === c.SLASH &&
       isStyle(
         this.data[this.i + 2],
         this.data[this.i + 3],
@@ -218,7 +218,7 @@ class Generator {
       return fromHtml.split(' ').map(resolveLink).map(part => this.mapping.get(part) || part).join(' ');
     }
     const link = resolveLink(fromHtml);
-    let result = this.mapping.get(link) || link;
+    let result = link && link.startsWith('http') ? link : (this.mapping.get(link) || link);
     if (lastSeenHash) { // srcset can't have hash
       result += lastSeenHash
     }
@@ -337,7 +337,7 @@ class Generator {
     }
     if (len === 10) {
       if (isXlinkHref(
-        data[initial], 
+        data[initial],
         data[initial + 1],
         data[initial + 2],
         data[initial + 3],
@@ -373,7 +373,7 @@ class Generator {
     this.i++;
     this.j++;
   }
-  
+
   /* istanbul ignore next */
   dumpIf(fn = () => true, logger = false) {
     let next100 = this.data.slice(this.i, this.i + 100).toString();
@@ -381,7 +381,7 @@ class Generator {
       console.log(new Error().stack);
       console.log(logger ? logger(next100) : next100);
     }
-  } 
+  }
 
   lenOk() {
     return this.i < this.len;
