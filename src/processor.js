@@ -2,6 +2,8 @@ const fs = require('fs');
 const path = require('path');
 const express = require('express');
 const Parser = require('./parser');
+var iconv = require('iconv-lite');
+const ced = require('ced')
 
 const promised = (fn, ...args) => new Promise(function executor(resolve, reject) {
   fn.call(this, ...args, (err, data) => {
@@ -35,11 +37,31 @@ module.exports = class Processor {
         const parser = new Parser({ });
         const fp = promised(fs.readFile, `./demos/${file}`);
         fp.then(data => parser.parse(data).rewrite().spit()).then((spitFiles) => {
+          const css_array = []
           for (const result of spitFiles) {
-            fileCache.set(result.filename.replace(/#.*/, ''), result); // remove hash and set in cache
+            if (result.type == 'text/css' || result.type == 'application/octet-stream'){
+              css_array.push(`<style>${result.content}</style>`)
+            }
           }
+
+          console.log('ckeck encode type: ', ced(spitFiles[0].content))
+
+          let newHtml
+          if (ced(spitFiles[0].content) != 'UTF8') {
+            const html = iconv.decode(spitFiles[0].content,'GBK')
+            newHtml = html.replace(/(<\/head)/, `${css_array.join(' ')}$1`)
+            newHtml = html.replace(/GBK/, `utf8`)
+          } else {
+            const html = spitFiles[0].content.toString()
+            newHtml = html.replace(/(<\/head)/, `${css_array.join(' ')}$1`)
+          }
+
+
+          // console.log('html-----> ', newHtml)
           res.setHeader('Content-Type', spitFiles[0].type);
-          res.send(spitFiles[0].content);
+          fs.writeFileSync('tt.html', newHtml);
+          // console.log('=====>> ', spitFiles[2])
+          res.send(newHtml);
           res.end();
         }).catch((err) => {
           res.status(500);
